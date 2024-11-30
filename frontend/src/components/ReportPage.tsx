@@ -16,23 +16,22 @@ const ReportPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/reports`, {
+      const response = await fetch(`http://localhost:8000/reports`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${keycloak.token}`, // Добавляем токен в заголовок
+          'Authorization': `Bearer ${keycloak.token}`,
         },
       });
-
+      console.log('2')
       if (!response.ok) {
         throw new Error(`Error: ${response.statusText}`);
       }
 
-      // Скачиваем файл
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'report.pdf'; // Имя файла для загрузки
+      a.download = 'report.pdf';
       document.body.appendChild(a);
       a.click();
       a.remove();

@@ -22,5 +22,5 @@ const App: React.FC = () => {
     </ReactKeycloakProvider>
   );
 };
-
+console.log('1')
 export default App;
