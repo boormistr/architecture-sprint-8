@@ -1,24 +1,26 @@
 import React from 'react';
+import Keycloak from 'keycloak-js';
 import { ReactKeycloakProvider } from '@react-keycloak/web';
-import Keycloak, { KeycloakConfig } from 'keycloak-js';
 import ReportPage from './components/ReportPage';
 
-const keycloakConfig: KeycloakConfig = {
-  url: process.env.REACT_APP_KEYCLOAK_URL,
-  realm: process.env.REACT_APP_KEYCLOAK_REALM||"",
-  clientId: process.env.REACT_APP_KEYCLOAK_CLIENT_ID||""
-};
-
-const keycloak = new Keycloak(keycloakConfig);
+const keycloak = new Keycloak({
+  url: 'http://localhost:8080',
+  realm: 'reports-realm',
+  clientId: 'reports-frontend',
+});
 
 const App: React.FC = () => {
   return (
-    <ReactKeycloakProvider authClient={keycloak}>
-      <div className="App">
-        <ReportPage />
-      </div>
+    <ReactKeycloakProvider
+      authClient={keycloak}
+      initOptions={{
+        onLoad: 'login-required',
+        pkceMethod: 'S256',
+      }}
+    >
+      <ReportPage />
     </ReactKeycloakProvider>
   );
 };
-
+console.log('1')
 export default App;

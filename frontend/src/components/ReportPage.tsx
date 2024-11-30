@@ -16,13 +16,25 @@ const ReportPage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/reports`, {
+      const response = await fetch(`http://localhost:8000/reports`, {
+        method: 'GET',
         headers: {
-          'Authorization': `Bearer ${keycloak.token}`
-        }
+          'Authorization': `Bearer ${keycloak.token}`,
+        },
       });
+      console.log('2')
+      if (!response.ok) {
+        throw new Error(`Error: ${response.statusText}`);
+      }
 
-      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'report.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -51,7 +63,7 @@ const ReportPage: React.FC = () => {
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
       <div className="p-8 bg-white rounded-lg shadow-md">
         <h1 className="text-2xl font-bold mb-6">Usage Reports</h1>
-        
+
         <button
           onClick={downloadReport}
           disabled={loading}

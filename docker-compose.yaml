@@ -4,23 +4,37 @@ services:
   keycloak_db:
     image: postgres:14
     environment:
-      POSTGRES_DB: keycloak_db
-      POSTGRES_USER: keycloak_user
-      POSTGRES_PASSWORD: keycloak_password
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - ./postgres-keycloak-data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
+    networks:
+      - mynetwork
+
   keycloak:
     image: quay.io/keycloak/keycloak:21.1
+    container_name: keycloak
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://keycloak_db:5432/keycloak_db
-      KC_DB_USERNAME: keycloak_user
-      KC_DB_PASSWORD: keycloak_password
-    command: 
+      KC_DB_URL: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+      KC_DB_USERNAME: ${DB_USER}
+      KC_DB_PASSWORD: ${DB_PASSWORD}
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_BACKCHANNEL: "false"
+      KC_HTTP_RELATIVE_PATH: /
+      KC_CORS: "false"
+      KC_CORS_ORIGINS: "http://localhost:3000,http://localhost:8000"
+      KC_CORS_ALLOWED_HEADERS: "Authorization, Content-Type"
+      KC_CORS_ALLOWED_METHODS: "POST, PUT, DELETE, GET, OPTIONS"
+      KC_CORS_ALLOW_CREDENTIALS: "true"
+    command:
       - start-dev
       - --import-realm
     volumes:
@@ -29,6 +43,9 @@ services:
       - "8080:8080"
     depends_on:
       - keycloak_db
+    networks:
+      - mynetwork
+
   frontend:
     build:
       context: ./frontend
@@ -36,7 +53,43 @@ services:
     ports:
       - "3000:3000"
     environment:
-      REACT_APP_API_URL: http://localhost:8000
-      REACT_APP_KEYCLOAK_URL: http://localhost:8080
-      REACT_APP_KEYCLOAK_REALM: reports-realm
-      REACT_APP_KEYCLOAK_CLIENT_ID: reports-frontend
+      API_URL: ${REACT_APP_API_URL}
+      REACT_APP_KEYCLOAK_URL: ${REACT_APP_KEYCLOAK_URL}
+      REACT_APP_KEYCLOAK_REALM: ${REACT_APP_KEYCLOAK_REALM}
+      REACT_APP_KEYCLOAK_CLIENT_ID: ${REACT_APP_CLIENT_ID}
+    depends_on:
+      - keycloak
+      - reports_api
+    networks:
+      - mynetwork
+
+  reports_api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: reports_api
+    ports:
+      - "${REACT_APP_API_PORT}:${REACT_APP_API_PORT}"
+    depends_on:
+      - keycloak
+    networks:
+      - mynetwork
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend/build:/usr/share/nginx/html
+    depends_on:
+      - frontend
+      - reports_api
+    networks:
+      - mynetwork
+
+
+networks:
+  mynetwork:
+    driver: bridge
